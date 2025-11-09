@@ -5,6 +5,6 @@ export interface Book {
   genre: string;
   available: boolean;
   issuedTo?: number; //USERID
-  issueDate?: Date;
-  dueDate?: Date;
+  issueDate?: string;
+  dueDate?: string;
 }

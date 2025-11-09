@@ -3,86 +3,67 @@ import { Book } from "../models/book";
 import { User } from "../models/user";
 
 export class UserService implements IUserService {
-  private user: User | null = null;
-  private books: Book[] = [];
+  private books: Book[];
+  private users: User[];
+  private currentUser: User | null = null;
 
-  constructor(books: Book[], private users: User[]) {
+  constructor(books: Book[], users: User[]) {
     this.books = books;
+    this.users = users;
   }
 
   login(email: string, password: string): boolean {
-    const foundUser = this.users.find(
-      (u) => u.email === email && u.password === password
+    const found = this.users.find(
+      (u) => u.email === email && u.password === password && u.role === "USER"
     );
-    if (foundUser) {
-      this.user = foundUser;
-      console.log(`${foundUser.name}, Successfully logged in!!.`);
+
+    if (found) {
+      this.currentUser = found;
+      console.log(`Welcome, ${found.name}!`);
       return true;
-    } else {
-      console.log("Invalid Entry!!.");
-      return false;
     }
+
+    console.log("Invalid credentials!!");
+    return false;
   }
 
   searchBook(query: string): Book[] {
-    if (!this.user) throw new Error("User not logged in.");
+    if (!this.currentUser) throw new Error("User not logged in.");
+    const q = query.toLowerCase();
     const results = this.books.filter(
       (b) =>
-        b.title.toLowerCase().includes(query.toLowerCase()) ||
-        b.author.toLowerCase().includes(query.toLowerCase()) ||
-        b.genre.toLowerCase().includes(query.toLowerCase())
+        b.title.toLowerCase().includes(q) ||
+        b.author.toLowerCase().includes(q) ||
+        b.genre.toLowerCase().includes(q)
     );
-    console.log(`Found ${results.length} book(s).`);
     return results;
   }
 
-  issueBook(bookId: number): string {
-    if (!this.user) return "User not logged in.";
-    const book = this.books.find((b) => b.id === bookId);
-    if (!book) return "Book not found.";
-    if (!book.available) return "Book already issued.";
-
-    book.available = false;
-    book.issuedTo = this.user.id;
-    book.issueDate = new Date();
-    const due = new Date();
-    due.setDate(due.getDate() + 30);
-    book.dueDate = due;
-
-    this.user.issuedBooks.push(bookId);
-
-    return `Book '${
-      book.title
-    }' issued successfully. Due on ${due.toDateString()}`;
-  }
-
-  returnBook(bookId: number): string {
-    if (!this.user) return "User not logged in.";
-    const book = this.books.find((b) => b.id === bookId);
-    if (!book || book.issuedTo !== this.user.id)
-      return "You have not issued this book.";
-
-    book.available = true;
-    book.issuedTo = undefined;
-    book.issueDate = undefined;
-    book.dueDate = undefined;
-
-    this.user.issuedBooks = this.user.issuedBooks.filter((id) => id !== bookId);
-
-    return `Book '${book.title}' returned successfully.`;
+  viewMyBooks(): Book[] {
+    if (!this.currentUser) throw new Error("User not logged in.");
+    return this.books.filter((b) => b.issuedTo === this.currentUser?.id);
   }
 
   viewDueDates(): { bookId: number; dueDate: Date }[] {
-    if (!this.user) throw new Error("User not logged in.");
+    if (!this.currentUser) throw new Error("User not logged in.");
+
     const dueBooks = this.books
-      .filter((b) => b.issuedTo === this.user?.id && b.dueDate)
-      .map((b) => ({ bookId: b.id, dueDate: b.dueDate! }));
+      .filter(
+        (b) => b.issuedTo === this.currentUser?.id && b.dueDate !== undefined
+      )
+      .map((b) => ({
+        bookId: b.id,
+        dueDate: new Date(b.dueDate!),
+      }));
     return dueBooks;
   }
 
   logout(): void {
-    if (this.user)
-      console.log(`User ${this.user.name}, Successfully logged out!!`);
-    this.user = null;
+    if (this.currentUser) {
+      console.log(`${this.currentUser.name} successfully Looged out!!`);
+      this.currentUser = null;
+    } else {
+      console.log("Error in Logout!");
+    }
   }
 }

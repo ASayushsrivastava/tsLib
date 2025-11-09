@@ -3,74 +3,53 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 class UserService {
     constructor(books, users) {
-        this.users = users;
-        this.user = null;
-        this.books = [];
+        this.currentUser = null;
         this.books = books;
+        this.users = users;
     }
     login(email, password) {
-        const foundUser = this.users.find((u) => u.email === email && u.password === password);
-        if (foundUser) {
-            this.user = foundUser;
-            console.log(`${foundUser.name}, Successfully logged in!!.`);
+        const found = this.users.find((u) => u.email === email && u.password === password && u.role === "USER");
+        if (found) {
+            this.currentUser = found;
+            console.log(`Welcome, ${found.name}!`);
             return true;
         }
-        else {
-            console.log("Invalid Entry!!.");
-            return false;
-        }
+        console.log("Invalid credentials!!");
+        return false;
     }
     searchBook(query) {
-        if (!this.user)
+        if (!this.currentUser)
             throw new Error("User not logged in.");
-        const results = this.books.filter((b) => b.title.toLowerCase().includes(query.toLowerCase()) ||
-            b.author.toLowerCase().includes(query.toLowerCase()) ||
-            b.genre.toLowerCase().includes(query.toLowerCase()));
-        console.log(`Found ${results.length} book(s).`);
+        const q = query.toLowerCase();
+        const results = this.books.filter((b) => b.title.toLowerCase().includes(q) ||
+            b.author.toLowerCase().includes(q) ||
+            b.genre.toLowerCase().includes(q));
         return results;
     }
-    issueBook(bookId) {
-        if (!this.user)
-            return "User not logged in.";
-        const book = this.books.find((b) => b.id === bookId);
-        if (!book)
-            return "Book not found.";
-        if (!book.available)
-            return "Book already issued.";
-        book.available = false;
-        book.issuedTo = this.user.id;
-        book.issueDate = new Date();
-        const due = new Date();
-        due.setDate(due.getDate() + 30);
-        book.dueDate = due;
-        this.user.issuedBooks.push(bookId);
-        return `Book '${book.title}' issued successfully. Due on ${due.toDateString()}`;
-    }
-    returnBook(bookId) {
-        if (!this.user)
-            return "User not logged in.";
-        const book = this.books.find((b) => b.id === bookId);
-        if (!book || book.issuedTo !== this.user.id)
-            return "You have not issued this book.";
-        book.available = true;
-        book.issuedTo = undefined;
-        book.issueDate = undefined;
-        book.dueDate = undefined;
-        this.user.issuedBooks = this.user.issuedBooks.filter((id) => id !== bookId);
-        return `Book '${book.title}' returned successfully.`;
+    viewMyBooks() {
+        if (!this.currentUser)
+            throw new Error("User not logged in.");
+        return this.books.filter((b) => b.issuedTo === this.currentUser?.id);
     }
     viewDueDates() {
-        if (!this.user)
+        if (!this.currentUser)
             throw new Error("User not logged in.");
         const dueBooks = this.books
-            .filter((b) => b.issuedTo === this.user?.id && b.dueDate)
-            .map((b) => ({ bookId: b.id, dueDate: b.dueDate }));
+            .filter((b) => b.issuedTo === this.currentUser?.id && b.dueDate !== undefined)
+            .map((b) => ({
+            bookId: b.id,
+            dueDate: new Date(b.dueDate),
+        }));
         return dueBooks;
     }
     logout() {
-        if (this.user)
-            console.log(`User ${this.user.name}, Successfully logged out!!`);
-        this.user = null;
+        if (this.currentUser) {
+            console.log(`${this.currentUser.name} successfully Looged out!!`);
+            this.currentUser = null;
+        }
+        else {
+            console.log("Error in Logout!");
+        }
     }
 }
 exports.UserService = UserService;
