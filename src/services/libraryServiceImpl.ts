@@ -59,9 +59,12 @@ export class LibraryService implements ILibraryService {
     if (book.issuedTo !== userId)
       return "This book is not issued to this user.";
     book.available = true;
-    book.issuedTo = undefined;
-    book.issueDate = undefined;
-    book.dueDate = undefined;
+    // book.issuedTo = undefined;
+    // book.issueDate = undefined;
+    // book.dueDate = undefined;
+    delete book.issuedTo;
+    delete book.issueDate;
+    delete book.dueDate;
     return `Book '${book.title}' returned by user ${userId}!!`;
   }
 
